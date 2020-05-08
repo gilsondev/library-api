@@ -1,4 +1,4 @@
-package in.gilsondev.libraryapi.models.entities;
+package in.gilsondev.libraryapi.model.entities;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

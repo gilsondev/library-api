@@ -1,7 +1,8 @@
-package in.gilsondev.libraryapi.api.resources;
+package in.gilsondev.libraryapi.api.resource;
 
 import in.gilsondev.libraryapi.api.dto.BookDTO;
-import in.gilsondev.libraryapi.api.exceptions.ApiErrors;
+import in.gilsondev.libraryapi.api.exception.ApiErrors;
+import in.gilsondev.libraryapi.exception.BusinessException;
 import in.gilsondev.libraryapi.model.entities.Book;
 import in.gilsondev.libraryapi.service.BookService;
 import org.modelmapper.ModelMapper;
@@ -41,5 +42,11 @@ public class BookController {
     public ApiErrors handleValidationExceptions(MethodArgumentNotValidException validException) {
         BindingResult bindingResult = validException.getBindingResult();
         return new ApiErrors(bindingResult);
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrors handleBusinessException(BusinessException businessException) {
+        return new ApiErrors(businessException);
     }
 }

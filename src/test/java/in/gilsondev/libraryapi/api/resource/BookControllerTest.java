@@ -1,4 +1,4 @@
-package in.gilsondev.libraryapi.api.resources;
+package in.gilsondev.libraryapi.api.resource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import in.gilsondev.libraryapi.api.dto.BookDTO;
