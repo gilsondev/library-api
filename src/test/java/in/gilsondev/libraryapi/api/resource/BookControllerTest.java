@@ -2,8 +2,9 @@ package in.gilsondev.libraryapi.api.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import in.gilsondev.libraryapi.api.dto.BookDTO;
-import in.gilsondev.libraryapi.models.entities.Book;
-import in.gilsondev.libraryapi.services.BookService;
+import in.gilsondev.libraryapi.exception.BusinessException;
+import in.gilsondev.libraryapi.model.entities.Book;
+import in.gilsondev.libraryapi.service.BookService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,11 +41,7 @@ public class BookControllerTest {
     @Test
     @DisplayName("Should create a book successfully")
     public void createBookTest() throws Exception {
-        BookDTO bookDTO = BookDTO.builder()
-                .author("Autor")
-                .title("Meu Livro")
-                .isbn("123123123")
-                .build();
+        BookDTO bookDTO = createNewBook();
 
         Book savedBook = Book.builder()
                 .id(1L)
@@ -84,5 +81,33 @@ public class BookControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("errors", hasSize(3)));
 
+    }
+
+    @Test
+    @DisplayName("Should catch business error when create book with duplicated ISBN")
+    public void createBookWithDuplicatedISBN() throws Exception {
+        BookDTO bookDTO = createNewBook();
+
+        String json = new ObjectMapper().writeValueAsString(bookDTO);
+        String errorMessage = "ISBN is already exists";
+        given(bookService.save(Mockito.any(Book.class))).willThrow(new BusinessException(errorMessage));
+
+        MockHttpServletRequestBuilder request = post(BOOKS_API)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(json);
+
+        mockMvc.perform(request)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("errors", hasSize(1)))
+                .andExpect(jsonPath("errors[0]").value(errorMessage));
+    }
+
+    private BookDTO createNewBook() {
+        return BookDTO.builder()
+                .author("Autor")
+                .title("Meu Livro")
+                .isbn("123123123")
+                .build();
     }
 }
