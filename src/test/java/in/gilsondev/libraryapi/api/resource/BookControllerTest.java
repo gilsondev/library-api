@@ -19,8 +19,14 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.text.MessageFormat;
+import java.util.Optional;
+
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -101,6 +107,87 @@ public class BookControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("errors", hasSize(1)))
                 .andExpect(jsonPath("errors[0]").value(errorMessage));
+    }
+
+    @Test
+    @DisplayName("Should fetch informations of book by ID")
+    public void getBookDetailTest() throws Exception {
+        Long id = 1L;
+        final String BOOK_BY_ID_API = MessageFormat.format("{0}/{1}", BOOKS_API, id);
+
+        Book book = Book.builder()
+                .id(id)
+                .author(createNewBook().getAuthor())
+                .title(createNewBook().getTitle())
+                .isbn(createNewBook().getIsbn())
+                .build();
+
+        given(bookService.getById(id)).willReturn(Optional.of(book));
+
+        MockHttpServletRequestBuilder request = get(BOOK_BY_ID_API)
+                .accept(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("id").value(id))
+                .andExpect(jsonPath("title").value(book.getTitle()))
+                .andExpect(jsonPath("author").value(book.getAuthor()))
+                .andExpect(jsonPath("isbn").value(book.getIsbn()));
+    }
+
+    @Test
+    @DisplayName("Should return not found when book not exists")
+    public void bookNotExists() throws Exception {
+        Long id = 1L;
+        final String BOOK_BY_ID_API = MessageFormat.format("{0}/{1}", BOOKS_API, id);
+
+        given(bookService.getById(anyLong())).willReturn(Optional.empty());
+
+        MockHttpServletRequestBuilder request = get(BOOK_BY_ID_API)
+                .accept(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(request)
+                .andExpect(status().isNotFound());
+
+    }
+
+    @Test
+    @DisplayName("Should remove book by ID")
+    public void removeBookByID() throws Exception {
+        Long id = 1L;
+        final String BOOK_BY_ID_API = MessageFormat.format("{0}/{1}", BOOKS_API, id);
+
+        Book book = Book.builder()
+                .id(id)
+                .author(createNewBook().getAuthor())
+                .title(createNewBook().getTitle())
+                .isbn(createNewBook().getIsbn())
+                .build();
+
+        given(bookService.getById(id)).willReturn(Optional.of(book));
+
+        MockHttpServletRequestBuilder request = delete(BOOK_BY_ID_API)
+                .accept(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(request)
+                .andExpect(status().isNoContent());
+
+    }
+
+    @Test
+    @DisplayName("Should return not found when remove book that not exists")
+    public void deleteBookNotExists() throws Exception {
+        Long id = 1L;
+        final String BOOK_BY_ID_API = MessageFormat.format("{0}/{1}", BOOKS_API, id);
+
+        given(bookService.getById(anyLong())).willReturn(Optional.empty());
+
+        MockHttpServletRequestBuilder request = delete(BOOK_BY_ID_API)
+                .accept(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(request)
+                .andExpect(status().isNotFound());
+
     }
 
     private BookDTO createNewBook() {
