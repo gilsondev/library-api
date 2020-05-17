@@ -23,11 +23,13 @@ import java.text.MessageFormat;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,7 +58,7 @@ public class BookControllerTest {
                 .isbn("123123123")
                 .build();
 
-        given(bookService.save(Mockito.any(Book.class))).willReturn(savedBook);
+        given(bookService.save(any(Book.class))).willReturn(savedBook);
 
         String json = new ObjectMapper().writeValueAsString(bookDTO);
 
@@ -96,7 +98,7 @@ public class BookControllerTest {
 
         String json = new ObjectMapper().writeValueAsString(bookDTO);
         String errorMessage = "ISBN is already exists";
-        given(bookService.save(Mockito.any(Book.class))).willThrow(new BusinessException(errorMessage));
+        given(bookService.save(any(Book.class))).willThrow(new BusinessException(errorMessage));
 
         MockHttpServletRequestBuilder request = post(BOOKS_API)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -144,6 +146,60 @@ public class BookControllerTest {
         given(bookService.getById(anyLong())).willReturn(Optional.empty());
 
         MockHttpServletRequestBuilder request = get(BOOK_BY_ID_API)
+                .accept(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(request)
+                .andExpect(status().isNotFound());
+
+    }
+
+
+    @Test
+    @DisplayName("Should update a book by ID")
+    public void updateBook() throws Exception {
+        Long id = 1L;
+        final String BOOK_BY_ID_API = MessageFormat.format("{0}/{1}", BOOKS_API, id);
+
+        Book book = Book.builder()
+                .id(id)
+                .author(createNewBook().getAuthor())
+                .title("Old Book")
+                .isbn(createNewBook().getIsbn())
+                .build();
+
+        Book updatedBook = Book.builder()
+                .id(id)
+                .author(createNewBook().getAuthor())
+                .title(createNewBook().getTitle())
+                .isbn(createNewBook().getIsbn())
+                .build();
+
+        String json = new ObjectMapper().writeValueAsString(createNewBook());
+        given(bookService.getById(id)).willReturn(Optional.of(book));
+        given(bookService.update(any(Book.class))).willReturn(updatedBook);
+
+        MockHttpServletRequestBuilder request = put(BOOK_BY_ID_API)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(json);
+
+        mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("id").value(id))
+                .andExpect(jsonPath("title").value(updatedBook.getTitle()))
+                .andExpect(jsonPath("author").value(book.getAuthor()))
+                .andExpect(jsonPath("isbn").value(book.getIsbn()));
+    }
+
+    @Test
+    @DisplayName("Should return not found when update book that not exists")
+    public void updateBookNotExists() throws Exception {
+        Long id = 1L;
+        final String BOOK_BY_ID_API = MessageFormat.format("{0}/{1}", BOOKS_API, id);
+
+        given(bookService.getById(anyLong())).willReturn(Optional.empty());
+
+        MockHttpServletRequestBuilder request = put(BOOK_BY_ID_API)
                 .accept(MediaType.APPLICATION_JSON);
 
         mockMvc.perform(request)
